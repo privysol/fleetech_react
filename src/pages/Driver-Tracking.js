@@ -73,7 +73,7 @@ const onePpadding = {padding: "1%"};
 //      }
 //     ];
 
-const DIRECTION_URL = "https://maps.googleapis.com/maps/api/directions/json?origin=31.403188186768677,74.2125090994906&destination=31.403040249839915,74.20589156323823&avoid=highways%20&mode=driving&key=AIzaSyBjrQpQc3KV7UqkYj2ke0NSTd1SBRebs-4";
+// const DIRECTION_URL = "https://maps.googleapis.com/maps/api/directions/json?origin=31.403188186768677,74.2125090994906&destination=31.403040249839915,74.20589156323823&avoid=highways%20&mode=driving&key=AIzaSyBjrQpQc3KV7UqkYj2ke0NSTd1SBRebs-4";
 
 
 class DriverTracking extends React.Component{
@@ -101,6 +101,9 @@ class DriverTracking extends React.Component{
         recent_trips: [],
         driver_lat: 0,
         driver_lon: 0,
+        dest_lat: 0,
+        dest_lon: 0,
+        driver_status: "ontrip",
 
         directions: null,
 
@@ -155,15 +158,14 @@ class DriverTracking extends React.Component{
         });
     };
 
-    async getDirection() {
-
+    async getDirection(o_lat, o_lon, d_lat, d_lon) { 
+        // const DIRECTION_URL = "https://maps.googleapis.com/maps/api/directions/json?origin="+origin+"&destination="+destination+"&avoid=highways%20&mode=driving&key="+constants.GOOGLE_API;
         const directionsService = new google.maps.DirectionsService();
 
         var that = this;
-
         directionsService.route({
-            origin: new google.maps.LatLng(31.403188186768677,74.2125090994906),
-            destination: new google.maps.LatLng(31.398589342537598,74.21610428548756),
+            origin: new google.maps.LatLng(o_lat, o_lon),
+            destination: new google.maps.LatLng(d_lat, d_lon),
             travelMode: 'DRIVING'
         }, function(response, status) {
             if (status === 'OK') {
@@ -335,8 +337,12 @@ class DriverTracking extends React.Component{
                 this.setState({
                     driver_lat: data[0].lat,
                     driver_lon: data[0].lon,
-                    socket_drivers : data
+                    dest_lat:   data[0].destination_lat,
+                    dest_lon:   data[0].destination_lon,
+                    socket_drivers : data,
+                    driver_status: "ontrip",
                 });
+                this.getDirection(this.state.driver_lat, this.state.driver_lon, this.state.dest_lat, this.state.dest_lon);
             }
             console.clear();
             console.log("Got Socket Data: "+JSON.stringify(data));
@@ -573,22 +579,6 @@ class DriverTracking extends React.Component{
                                     onClick={this.onMapClicked}
                                     >
 
-                                    <Polyline
-                                        path={this.state.pathCoordinates}
-                                        geodesic={true}
-                                        options={{
-                                            strokeColor: "#ff2527",
-                                            strokeOpacity: 0.75,
-                                            strokeWeight: 2,
-                                            icons: [
-                                                {
-                                                    icon: lineSymbol,
-                                                    offset: "0",
-                                                    repeat: "20px"
-                                                }
-                                            ]
-                                        }}
-                                    />
 
                                     <Marker
                                         icon={{
@@ -601,6 +591,44 @@ class DriverTracking extends React.Component{
                                         name={this.state.driver_id}
                                         position={ {lat: this.state.driver_lat, lng: this.state.driver_lon} }
                                     />
+
+
+                                    {this.state.driver_status && 
+                                        <Marker
+                                            icon={{
+                                                url: "/assets/img/to_marker.png",
+                                                scale: 3
+                                            }}
+                                            onClick={this.onMarkerClick}
+                                            key={this.state.dest_lat}
+                                            title={this.state.dest_lat}
+                                            name={this.state.dest_lat}
+                                            position={ {lat: this.state.dest_lat, lng: this.state.dest_lon} }
+                                        />
+
+                                    }
+
+
+                                    {this.state.driver_status && 
+
+                                        <Polyline
+                                            path={this.state.pathCoordinates}
+                                            geodesic={true}
+                                            options={{
+                                                strokeColor: "#ff2527",
+                                                strokeOpacity: 0.75,
+                                                strokeWeight: 2,
+                                                icons: [
+                                                    {
+                                                        icon: lineSymbol,
+                                                        offset: "0",
+                                                        repeat: "20px"
+                                                    }
+                                                ]
+                                            }}
+                                        />
+
+                                    }
 
                                     <InfoWindow
                                           marker={this.state.activeMarker}
